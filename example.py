@@ -97,7 +97,7 @@ def get_monitor_data(combinations, title, source, keywords, data_dir, progress):
         # make short query
         short_query = get_short_query(combination)
         # make a data directory
-        query_dir = make_query_dir(brand_dir, short_query)
+        query_dir = make_query_dir(data_dir, short_query)
         # save keyword query in txt-file
         with open(query_dir + "keywords.txt", "w+") as txt_file: txt_file.write(keyword_query)
         # get data for combination (parallel)
