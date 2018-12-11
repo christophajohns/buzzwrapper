@@ -1,0 +1,5 @@
+requests==2.18.4
+vcrpy==2.0.1
+pytest==4.0.1
+beautifulsoup4==4.5.1
+xlrd==1.1.0
