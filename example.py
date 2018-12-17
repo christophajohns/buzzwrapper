@@ -86,8 +86,8 @@ def get_monitor_data(combinations, title, source, keywords, data_dir, progress):
     # add buzz monitor
     new_monitor = Monitor(title=title, sources=source, languages=languages, keywords=keywords, start=start, end=end)
     monitor_id = new_monitor.id
-    # start worker threads for parallel processing (max. 50)
-    pool = multiprocessing.pool.ThreadPool(processes=50)
+    # start worker threads for parallel processing (alternatively set processes=50 and split the filter function into async_add, maybe azync_get but sequential store)
+    pool = multiprocessing.pool.ThreadPool()
     res_list = []
     # for each combination
     for combi_index, combination in enumerate(combinations):
