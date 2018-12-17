@@ -3,8 +3,10 @@ https://www.python.org/downloads/
 
 2. Navigate to BuzzWrapper directory
 
-3. Install Requirements:
+3. Install Requirements (if just for current user with additional argument --user)
 pip install -r requirements.txt
+or
+pip install -r requirements.txt --user
 
 4. Set Enviroment Variables for Crimson Hexagon Login
 export CH_USERNAME=<username>
