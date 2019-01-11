@@ -3,7 +3,7 @@ import os
 import itertools
 import datetime
 import pandas
-import multiprocessing.pool
+import multiprocessing.dummy
 
 def make_data_dir(source):
     """Make Directory for Output Data"""
@@ -86,8 +86,8 @@ def get_monitor_data(combinations, title, source, keywords, data_dir, progress):
     # add buzz monitor
     new_monitor = Monitor(title=title, sources=source, languages=languages, keywords=keywords, start=start, end=end)
     monitor_id = new_monitor.id
-    # start worker threads for parallel processing (alternatively set processes=50 and split the filter function into async_add, maybe azync_get but sequential store)
-    pool = multiprocessing.pool.ThreadPool()
+    # start worker threads for parallel processing
+    pool = multiprocessing.dummy.Pool(processes=len(combinations))
     res_list = []
     # for each combination
     for combi_index, combination in enumerate(combinations):
@@ -101,25 +101,30 @@ def get_monitor_data(combinations, title, source, keywords, data_dir, progress):
         # save keyword query in txt-file
         with open(query_dir + "keywords.txt", "w+") as txt_file: txt_file.write(keyword_query)
         # get data for combination (parallel)
-        res = pool.apply_async(get_filter_data, (monitor_id, keyword_query, short_query, query_dir, progress))
-        res_list.append(res)
-    for res in res_list:
-        res.get()
+        res = pool.apply_async(add_filter, (monitor_id, keyword_query, short_query, progress))
+        res_list.append((res, query_dir))
+    for (res, query_dir) in res_list:
+        filter = res.get()
+        get_filter_data(filter, query_dir)
+    pool.close()
+    pool.join()
     # delete buzz monitor
     new_monitor.delete()
 
 
-def get_filter_data(monitor_id, keywords, title, query_dir, progress):
+def add_filter(monitor_id, keywords, title, progress):
     print progress + " filters: Adding filter for " + title + "..."
     # make filter
     new_filter = Filter(monitor_id=monitor_id, title=title, keywords=keywords)
-    # save volume_data to csv
-    print "Getting volume data for "+title+"..."
-    new_filter.volume_to_csv(start=start, end=end, output_filename=query_dir+"volume_data.csv")
-    # save sentiment_data to csv
-    print "Getting sentiment data for "+title+"..."
-    new_filter.sentiment_to_csv(start=start, end=end, output_filename=query_dir+"sentiment_data.csv")
+    return new_filter
 
+def get_filter_data(filter, query_dir):
+    # save volume_data to csv
+    print "Getting volume data for "+filter.title+"..."
+    filter.volume_to_csv(start=start, end=end, output_filename=query_dir+"volume_data.csv")
+    # save sentiment_data to csv
+    print "Getting sentiment data for "+filter.title+"..."
+    filter.sentiment_to_csv(start=start, end=end, output_filename=query_dir+"sentiment_data.csv")
 
 # -- MAIN ----------------
 if __name__ == '__main__':
@@ -136,16 +141,16 @@ if __name__ == '__main__':
     brands = get_brands_dict(xl_file)
     sources = [
         ["twitter"],
-        ["blogs"],
-        ["forums"],
-        ["reddit"],
-        ["googleplus"],
-        ["tumblr"],
-        ["qq"],
-        ["reviews"],
-        ["news"],
-        ["youtube"],
-        ["blogs", "news"], # Control for Overlap between Blogs and News by having an additional monitor with sources "Blogs AND News"
+        # ["blogs"],
+        # ["forums"],
+        # ["reddit"],
+        # ["googleplus"],
+        # ["tumblr"],
+        # ["qq"],
+        # ["reviews"],
+        # ["news"],
+        # ["youtube"],
+        # ["blogs", "news"], # Control for Overlap between Blogs and News by having an additional monitor with sources "Blogs AND News"
     ]
     languages = [
         "en",
@@ -159,7 +164,7 @@ if __name__ == '__main__':
         # make data directory
         data_dir = make_data_dir("&".join(source))
         # start worker threads for parallel processing (max. free_monitors)
-        pool = multiprocessing.pool.ThreadPool(processes=free_monitors)
+        pool = multiprocessing.dummy.Pool(processes=free_monitors)
         res_list = []
         # for each corporate_brand
         for cbrand_index, corporate_brand in enumerate(brands):
@@ -180,5 +185,7 @@ if __name__ == '__main__':
                 res_list.append(res)
         for res in res_list:
             res.get()
+        pool.close()
+        pool.join()
     # Print Total Time elapsed
     print datetime.datetime.now() - start_time
