@@ -70,7 +70,7 @@ if number_of_free_monitors > 0:
     languages=languages, start=start_monitor, end=end_monitor)
   new_filter = Filter(monitor_id=new_monitor.id,
     title=title_filter, keywords=keywords_filter)
-  volume_data = new_filter.get_age_data(start=start_filter, end=end_filter)
+  volume_data = new_filter.get_volume_data(start=start_filter, end=end_filter)
   # Output
   print volume_data
 ```
