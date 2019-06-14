@@ -73,6 +73,8 @@ if number_of_free_monitors > 0:
   volume_data = new_filter.get_volume_data(start=start_filter, end=end_filter)
   # Output
   print volume_data
+  # Clean up
+  new_monitor.delete()
 ```
 
 For more extensive examples see [example.py](example.py) or [example_sequ.py](example_sequ.py).
