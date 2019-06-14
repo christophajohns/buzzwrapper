@@ -3,4 +3,6 @@ buzz/
 tests/__pycache__
 tests/vcr_cassettes
 data/
+data_sequ/
 keywords.xlsx
+setup.sh

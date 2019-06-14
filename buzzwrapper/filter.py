@@ -1,4 +1,5 @@
 from . import session
+from .helper import print_progress
 from . import Monitor
 from bs4 import BeautifulSoup
 import time
@@ -25,6 +26,8 @@ class Filter(Monitor):
         status_percent = Monitor.get_status(filter_id)
         while (status_percent != 100):
             status_percent = Monitor.get_status(filter_id)
+            # Update Progress Bar
+            print_progress(status_percent, 100, prefix = 'Progress:', suffix = 'Complete', bar_length=50)
             time.sleep(5)
         return filter_id
 
