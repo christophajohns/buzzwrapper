@@ -291,6 +291,7 @@ class Monitor(object):
                 start = sentiment_data[i]['startDate']
                 numberOfDocuments = sentiment_data[i]['numberOfDocuments']
                 numberOfRelevantDocuments = sentiment_data[i]['numberOfRelevantDocuments']
+<<<<<<< HEAD
                 categories_by_id = build_dict(sentiment_data[i]['categories'], key='category')
                 basicNegative = categories_by_id.get('Basic Negative')['volume']
                 basicNeutral = categories_by_id.get('Basic Neutral')['volume']
@@ -303,6 +304,20 @@ class Monitor(object):
                 disgust = emotions_by_id.get('Disgust')['volume']
                 joy = emotions_by_id.get('Joy')['volume']
                 neutral = emotions_by_id.get('Neutral')['volume']
+=======
+                categories_by_id = build_dict(sentiment_data[i]['categories'], key='categoryId')
+                basicNegative = categories_by_id.get(3735007912)['volume']
+                basicNeutral = categories_by_id.get(3735007910)['volume']
+                basicPositive = categories_by_id.get(3735007907)['volume']
+                emotions_by_id = build_dict(sentiment_data[i]['emotions'], key='categoryId')
+                fear = emotions_by_id.get(3735007903)['volume']
+                surprise = emotions_by_id.get(3735007911)['volume']
+                sadness = emotions_by_id.get(3735007909)['volume']
+                anger = emotions_by_id.get(3735007908)['volume']
+                disgust = emotions_by_id.get(3735007906)['volume']
+                joy = emotions_by_id.get(3735007905)['volume']
+                neutral = emotions_by_id.get(3735007904)['volume']
+>>>>>>> 1b6ebd3244ba9acf7bf8695349da45a2d74a61c4
 
                 writer.writerow([
                     start,
