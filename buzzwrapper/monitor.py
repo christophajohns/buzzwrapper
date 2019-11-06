@@ -291,16 +291,18 @@ class Monitor(object):
                 start = sentiment_data[i]['startDate']
                 numberOfDocuments = sentiment_data[i]['numberOfDocuments']
                 numberOfRelevantDocuments = sentiment_data[i]['numberOfRelevantDocuments']
-                basicNegative = sentiment_data[i]['categories'][0]['volume']
-                basicNeutral = sentiment_data[i]['categories'][1]['volume']
-                basicPositive = sentiment_data[i]['categories'][2]['volume']
-                fear = sentiment_data[i]['emotions'][0]['volume']
-                surprise = sentiment_data[i]['emotions'][1]['volume']
-                sadness = sentiment_data[i]['emotions'][2]['volume']
-                anger = sentiment_data[i]['emotions'][3]['volume']
-                disgust = sentiment_data[i]['emotions'][4]['volume']
-                joy = sentiment_data[i]['emotions'][5]['volume']
-                neutral = sentiment_data[i]['emotions'][6]['volume']
+                categories_by_id = build_dict(sentiment_data[i]['categories'], key='category')
+                basicNegative = categories_by_id.get('Basic Negative')['volume']
+                basicNeutral = categories_by_id.get('Basic Neutral')['volume']
+                basicPositive = categories_by_id.get('Basic Positive')['volume']
+                emotions_by_id = build_dict(sentiment_data[i]['emotions'], key='category')
+                fear = emotions_by_id.get('Fear')['volume']
+                surprise = emotions_by_id.get('Surprise')['volume']
+                sadness = emotions_by_id.get('Sadness')['volume']
+                anger = emotions_by_id.get('Anger')['volume']
+                disgust = emotions_by_id.get('Disgust')['volume']
+                joy = emotions_by_id.get('Joy')['volume']
+                neutral = emotions_by_id.get('Neutral')['volume']
 
                 writer.writerow([
                     start,
@@ -373,7 +375,7 @@ class Monitor(object):
 
     def posts_to_csv(self, start, end, output_filename="posts_data.csv"):
         """Saves posts data of monitor with id=id for spcified time range as a csv-file."""
-        posts_data = self.get_posts(start=start, end=end)
+        posts_data = self.get_posts_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
             writer.writerow([
@@ -406,12 +408,13 @@ class Monitor(object):
                 title = posts_data[i]['title'] if ('title' in posts_data[i]) else None
                 type = posts_data[i]['type'] if ('type' in posts_data[i]) else None
                 language = posts_data[i]['language'] if ('language' in posts_data[i]) else None
+                assigned_category = None
                 if ('assignedCategoryId' in posts_data[i]):
                     assigned_category_id = int(posts_data[i]['assignedCategoryId'])
                     if assigned_category_id == 3618925528: assigned_category = "Basic Positive"
                     if assigned_category_id == 3618925529: assigned_category = "Basic Neutral"
                     if assigned_category_id == 3618925530: assigned_category = "Basic Negative"
-                else: assigned_category = None
+                assigned_emotion = None
                 if ('assignedEmotionId' in posts_data[i]):
                     assigned_emotion_id = int(posts_data[i]['assignedEmotionId'])
                     if assigned_emotion_id == 3618925540: assigned_emotion = "Fear"
@@ -421,7 +424,6 @@ class Monitor(object):
                     if assigned_emotion_id == 3618925539: assigned_emotion = "Surprise"
                     if assigned_emotion_id == 3618925534: assigned_emotion = "Neutral"
                     if assigned_emotion_id == 3618925535: assigned_emotion = "Disgust"
-                else: assigned_emotion = None
                 category_scores = posts_data[i]['categoryScores']
                 basic_positive_dict = next((category for category in category_scores if int(category['categoryId']) == 3618925528), None)
                 basic_positive = basic_positive_dict['score'] if basic_positive_dict else None
@@ -566,3 +568,11 @@ def daterange(start_date, end_date):
     """
     for n in range(int ((end_date - start_date).days)):
         yield start_date + datetime.timedelta(n)
+
+def build_dict(seq, key):
+    """
+    Returns from dictionary in form {'id':'1234', 'name':'Tom'} a dictionary in form {'index':1, 'id':'1234', 'name':'Tom'}
+    with index signaling position of dict and seq where key = value
+    Source: https://stackoverflow.com/questions/4391697/find-the-index-of-a-dict-within-a-list-by-matching-the-dicts-value
+    """
+    return dict((d[key], dict(d, index=index)) for (index, d) in enumerate(seq))
