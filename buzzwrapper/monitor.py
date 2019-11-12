@@ -4,29 +4,52 @@ from bs4 import BeautifulSoup
 import time
 import datetime
 import csv
+import xlrd
+
 
 class Monitor(object):
-    def __init__(self, id=None, title=None, sources=None, languages=[], keywords=None, start=None, end=None):
+    def __init__(
+        self,
+        id=None,
+        title=None,
+        sources=None,
+        languages=[],
+        keywords=None,
+        start=None,
+        end=None
+    ):
         self.title = title
         self.sources = sources
         self.languages = languages
         self.keywords = keywords
         self.start = start
         self.end = end
-        if id == None and all([title, sources, keywords, start, end]):
-            self.id = Monitor.add(title=title, sources=sources, languages=languages, keywords=keywords,
-                start=start, end=end)
+        if id is None and all([title, sources, keywords, start, end]):
+            self.id = Monitor.add(
+                title=title,
+                sources=sources,
+                languages=languages,
+                keywords=keywords,
+                start=start,
+                end=end
+            )
         else:
             self.id = id
-            #TODO: Get info about monitor via API
-
+            # TODO: Get info about monitor via API
 
     @staticmethod
     def add(title, sources, keywords, start, end, languages=[]):
-        """Adds buzz monitor via Crimson Hexagon UI and returns monitor id after data is fully gathered."""
-        url = "https://forsight.crimsonhexagon.com/ch/monitor/unifiedsetup?run=1"
+        """
+        Adds buzz monitor via Crimson Hexagon UI and returns monitor id after
+        data is fully gathered.
+        """
 
-        doc_types = [] # Build sources array with ids
+        url = (
+            "https://forsight.crimsonhexagon.com/ch/monitor/unifiedsetup?"
+            + "run=1"
+        )
+
+        doc_types = []  # Build sources array with ids
         if "twitter" in sources:
             id = 16
             name = "twitter"
@@ -40,8 +63,17 @@ class Monitor(object):
         if "blogs" in sources:
             id = 10
             name = "blogs"
-            options = [{'name': 'Posts', 'enabled': True}, {'name': 'Comments', 'enabled': True}]
-            dict = {'id': id, 'name': name, 'options': options, 'genderIgnored': False, 'locationsIgnored': False}
+            options = [
+                {'name': 'Posts', 'enabled': True},
+                {'name': 'Comments', 'enabled': True}
+            ]
+            dict = {
+                'id': id,
+                'name': name,
+                'options': options,
+                'genderIgnored': False,
+                'locationsIgnored': False
+            }
             doc_types.append(dict)
         if "forums" in sources:
             id = 11
@@ -61,7 +93,12 @@ class Monitor(object):
         if "tumblr" in sources:
             id = 1177677775
             name = "tumblr"
-            dict = {'id': id, 'name': name, 'genderIgnored': False, 'locationsIgnored': False}
+            dict = {
+                'id': id,
+                'name': name,
+                'genderIgnored': False,
+                'locationsIgnored': False
+            }
             doc_types.append(dict)
         if "qq" in sources:
             id = 21
@@ -76,14 +113,18 @@ class Monitor(object):
         if "news" in sources:
             id = 12
             name = "news"
-            dict = {'id': id, 'name': name, 'genderIgnored': False, 'locationsIgnored': False}
+            dict = {
+                'id': id,
+                'name': name,
+                'genderIgnored': False,
+                'locationsIgnored': False
+            }
             doc_types.append(dict)
         if "youtube" in sources:
             id = 436455888
             name = "youtube"
             dict = {'id': id, 'name': name, 'locationsIgnored': False}
             doc_types.append(dict)
-
 
         params = {
             'brandAnalysisInfo': {
@@ -117,14 +158,27 @@ class Monitor(object):
         while (status_percent != 100):
             status_percent = Monitor.get_status(monitor_id)
             # Update Progress Bar
-            print_progress(status_percent, 100, prefix = 'Progress:', suffix = 'Complete', bar_length=50)
+            print_progress(
+                iteration=status_percent,
+                total=100,
+                prefix='Progress:',
+                suffix='Complete',
+                decimals=1,
+                bar_length=50
+            )
             time.sleep(5)
         return monitor_id
 
-
     def delete(self):
-        """Deletes monitor specified by monitor id and returns response dict whether action was successful."""
-        url = "https://forsight.crimsonhexagon.com/ch/monitor/unifiedsetup?id="+str(self.id)
+        """
+        Deletes monitor specified by monitor id and returns response dict
+        whether action was successful.
+        """
+
+        url = (
+            "https://forsight.crimsonhexagon.com/ch/monitor/unifiedsetup?"
+            + "id=" + str(self.id)
+        )
         resp = session.delete(url)
         status = resp.status_code
 
@@ -133,24 +187,35 @@ class Monitor(object):
             message = 'The filter was successfully deleted.'
         else:
             status = 'error'
-            message = 'There must have been an error. Maybe the cookie is not valid anymore.'
+            message = (
+                'There must have been an error. '
+                + 'Maybe the cookie is not valid anymore.'
+            )
         response = {'status': status, 'message': message}
         return response
 
-
     @staticmethod
     def get_status(id):
-        """Returns progress in gathering data for monitor or filter in percent."""
-        url = "https://forsight.crimsonhexagon.com/ch/opinion/status?id=" + str(id)
+        """
+        Returns progress in gathering data for monitor or filter in percent.
+        """
+
+        url = (
+            "https://forsight.crimsonhexagon.com/ch/opinion/status?"
+            + "id=" + str(id)
+        )
         page = session.get(url)
         soup = BeautifulSoup(page.text, 'html.parser')
         status_text = soup.find('h2').get_text()
         status_percent = int(status_text.split(': ')[1].split('%')[0])
         return status_percent
 
-
     def get_age_data(self, start, end):
-        """Return age data of monitor with a certain id for the specified time range as a list of dicts."""
+        """
+        Return age data of monitor with a certain id for the specified time
+        range as a list of dicts.
+        """
+
         url = "https://api.crimsonhexagon.com/api/monitor/demographics/age"
         params = {
             "auth": session.params['auth'],
@@ -163,9 +228,12 @@ class Monitor(object):
         json_data = response.json()
         return json_data["ageCounts"]
 
-
     def age_to_csv(self, start, end, output_filename="age_data.csv"):
-        """Saves age data of monitor with id=id for specified time range as a csv-file."""
+        """
+        Saves age data of monitor with id=id for specified time range as a
+        csv-file.
+        """
+
         age_data = self.get_age_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -188,10 +256,15 @@ class Monitor(object):
                 twentyfive_to_thirtyfour = None
                 thirtyfive_and_over = None
 
-                if 'ZERO_TO_SEVENTEEN' in age_data[i]['ageCount']['sortedAgeCounts'].keys(): zero_to_seventeen = age_data[i]['ageCount']['sortedAgeCounts']['ZERO_TO_SEVENTEEN']
-                if 'EIGHTEEN_TO_TWENTYFOUR' in age_data[i]['ageCount']['sortedAgeCounts'].keys(): eighteen_to_twentyfour = age_data[i]['ageCount']['sortedAgeCounts']['EIGHTEEN_TO_TWENTYFOUR']
-                if 'TWENTYFIVE_TO_THIRTYFOUR' in age_data[i]['ageCount']['sortedAgeCounts'].keys(): twentyfive_to_thirtyfour = age_data[i]['ageCount']['sortedAgeCounts']['TWENTYFIVE_TO_THIRTYFOUR']
-                if 'THIRTYFIVE_AND_OVER' in age_data[i]['ageCount']['sortedAgeCounts'].keys(): thirtyfive_and_over = age_data[i]['ageCount']['sortedAgeCounts']['THIRTYFIVE_AND_OVER']
+                sorted_age_counts = age_data[i]['ageCount']['sortedAgeCounts']
+                if 'ZERO_TO_SEVENTEEN' in sorted_age_counts.keys():
+                    zero_to_seventeen = sorted_age_counts['ZERO_TO_SEVENTEEN']
+                if 'EIGHTEEN_TO_TWENTYFOUR' in sorted_age_counts.keys():
+                    eighteen_to_twentyfour = sorted_age_counts['EIGHTEEN_TO_TWENTYFOUR']
+                if 'TWENTYFIVE_TO_THIRTYFOUR' in sorted_age_counts.keys():
+                    twentyfive_to_thirtyfour = sorted_age_counts['TWENTYFIVE_TO_THIRTYFOUR']
+                if 'THIRTYFIVE_AND_OVER' in sorted_age_counts['sortedAgeCounts'].keys():
+                    thirtyfive_and_over = sorted_age_counts['THIRTYFIVE_AND_OVER']
 
                 writer.writerow([
                     start,
@@ -203,9 +276,12 @@ class Monitor(object):
                     thirtyfive_and_over
                 ])
 
-
     def get_gender_data(self, start, end):
-        """Return gender data of monitor with a certain id for the specified time range as a list of dicts."""
+        """
+        Return gender data of monitor with a certain id for the specified time
+        range as a list of dicts.
+        """
+
         url = "https://api.crimsonhexagon.com/api/monitor/demographics/gender"
         params = {
             "auth": session.params['auth'],
@@ -218,9 +294,12 @@ class Monitor(object):
         json_data = response.json()
         return json_data["genderCounts"]
 
-
     def gender_to_csv(self, start, end, output_filename="gender_data.csv"):
-        """Saves gender data of monitor with id=id for specified time range as a csv-file."""
+        """
+        Saves gender data of monitor with id=id for specified time range as a
+        csv-file.
+        """
+
         gender_data = self.get_gender_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -235,12 +314,15 @@ class Monitor(object):
             for i in range(len(gender_data)):
                 start = gender_data[i]['startDate']
                 number_of_documents = gender_data[i]['numberOfDocuments']
-                total_gendered_count = gender_data[i]['genderCounts']['totalGenderedCount']
+                gender_counts = gender_data[i]['genderCounts']
+                total_gendered_count = gender_counts['totalGenderedCount']
                 male_count = None
                 female_count = None
 
-                if 'maleCount' in gender_data[i]['genderCounts'].keys(): male_count = gender_data[i]['genderCounts']['maleCount']
-                if 'femaleCount' in gender_data[i]['genderCounts'].keys(): female_count = gender_data[i]['genderCounts']['femaleCount']
+                if 'maleCount' in gender_counts.keys():
+                    male_count = gender_counts['maleCount']
+                if 'femaleCount' in gender_counts.keys():
+                    female_count = gender_counts['femaleCount']
 
                 writer.writerow([
                     start,
@@ -250,9 +332,12 @@ class Monitor(object):
                     female_count
                 ])
 
-
     def get_sentiment_data(self, start, end):
-        """Return sentiment data of monitor by id for the specified time range as a list of dicts."""
+        """
+        Return sentiment data of monitor by id for the specified time range as
+        a list of dicts.
+        """
+
         url = "https://api.crimsonhexagon.com/api/monitor/results"
         params = {
             "auth": session.params['auth'],
@@ -265,9 +350,17 @@ class Monitor(object):
         json_data = response.json()
         return json_data['results']
 
+    def sentiment_to_csv(
+        self,
+        start,
+        end,
+        output_filename="sentiment_data.csv"
+    ):
+        """
+        Saves sentiment data of monitor by id for specified time range as a
+        csv-file.
+        """
 
-    def sentiment_to_csv(self, start, end, output_filename="sentiment_data.csv"):
-        """Saves sentiment data of monitor by id for specified time range as a csv-file."""
         sentiment_data = self.get_sentiment_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -291,11 +384,17 @@ class Monitor(object):
                 start = sentiment_data[i]['startDate']
                 numberOfDocuments = sentiment_data[i]['numberOfDocuments']
                 numberOfRelevantDocuments = sentiment_data[i]['numberOfRelevantDocuments']
-                categories_by_id = build_dict(sentiment_data[i]['categories'], key='category')
+                categories_by_id = build_dict(
+                    sentiment_data[i]['categories'],
+                    key='category'
+                )
                 basicNegative = categories_by_id.get('Basic Negative')['volume']
                 basicNeutral = categories_by_id.get('Basic Neutral')['volume']
                 basicPositive = categories_by_id.get('Basic Positive')['volume']
-                emotions_by_id = build_dict(sentiment_data[i]['emotions'], key='category')
+                emotions_by_id = build_dict(
+                    sentiment_data[i]['emotions'],
+                    key='category'
+                )
                 fear = emotions_by_id.get('Fear')['volume']
                 surprise = emotions_by_id.get('Surprise')['volume']
                 sadness = emotions_by_id.get('Sadness')['volume']
@@ -320,9 +419,12 @@ class Monitor(object):
                     neutral
                 ])
 
-
     def get_volume_data(self, start, end):
-        """Return volume data of monitor by id for the specified time range as a list of dicts."""
+        """
+        Return volume data of monitor by id for the specified time range as a
+        list of dicts.
+        """
+
         url = "https://api.crimsonhexagon.com/api/monitor/volume"
         params = {
             "auth": session.params['auth'],
@@ -335,9 +437,12 @@ class Monitor(object):
         json_data = response.json()
         return json_data['volume']
 
-
     def volume_to_csv(self, start, end, output_filename="volume_data.csv"):
-        """Saves volume data of monitor by id for specified time range as a csv-file."""
+        """
+        Saves volume data of monitor by id for specified time range as a
+        csv-file.
+        """
+
         volume_data = self.get_volume_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -355,9 +460,12 @@ class Monitor(object):
                     volume
                 ])
 
-
     def get_posts_data(self, start, end):
-        """Return posts data of monitor with a certain id for the specified time range as a list of dicts."""
+        """
+        Return posts data of monitor with a certain id for the specified time
+        range as a list of dicts.
+        """
+
         url = "https://api.crimsonhexagon.com/api/monitor/posts"
         params = {
             "auth": session.params['auth'],
@@ -372,9 +480,12 @@ class Monitor(object):
         json_data = response.json()
         return json_data["posts"]
 
-
     def posts_to_csv(self, start, end, output_filename="posts_data.csv"):
-        """Saves posts data of monitor with id=id for spcified time range as a csv-file."""
+        """
+        Saves posts data of monitor with id=id for spcified time range as a
+        csv-file.
+        """
+
         posts_data = self.get_posts_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -401,50 +512,170 @@ class Monitor(object):
             ])
 
             for i in range(len(posts_data)):
-                url = posts_data[i]['url'] if ('url' in posts_data[i]) else None
-                date = posts_data[i]['date'] if ('date' in posts_data[i]) else None
-                author = posts_data[i]['author'] if ('author' in posts_data[i]) else None
-                contents = posts_data[i]['contents'] if ('contents' in posts_data[i]) else None
-                title = posts_data[i]['title'] if ('title' in posts_data[i]) else None
-                type = posts_data[i]['type'] if ('type' in posts_data[i]) else None
-                language = posts_data[i]['language'] if ('language' in posts_data[i]) else None
+                url = (
+                    posts_data[i]['url']
+                    if ('url' in posts_data[i])
+                    else None
+                )
+                date = (
+                    posts_data[i]['date']
+                    if ('date' in posts_data[i])
+                    else None
+                )
+                author = (
+                    posts_data[i]['author']
+                    if ('author' in posts_data[i])
+                    else None
+                )
+                contents = (
+                    posts_data[i]['contents']
+                    if ('contents' in posts_data[i])
+                    else None
+                )
+                title = (
+                    posts_data[i]['title']
+                    if ('title' in posts_data[i])
+                    else None
+                )
+                type = (
+                    posts_data[i]['type']
+                    if ('type' in posts_data[i])
+                    else None
+                )
+                language = (
+                    posts_data[i]['language']
+                    if ('language' in posts_data[i])
+                    else None
+                )
                 assigned_category = None
                 if ('assignedCategoryId' in posts_data[i]):
                     assigned_category_id = int(posts_data[i]['assignedCategoryId'])
-                    if assigned_category_id == 3618925528: assigned_category = "Basic Positive"
-                    if assigned_category_id == 3618925529: assigned_category = "Basic Neutral"
-                    if assigned_category_id == 3618925530: assigned_category = "Basic Negative"
+                    if assigned_category_id == 3618925528:
+                        assigned_category = "Basic Positive"
+                    if assigned_category_id == 3618925529:
+                        assigned_category = "Basic Neutral"
+                    if assigned_category_id == 3618925530:
+                        assigned_category = "Basic Negative"
                 assigned_emotion = None
                 if ('assignedEmotionId' in posts_data[i]):
                     assigned_emotion_id = int(posts_data[i]['assignedEmotionId'])
-                    if assigned_emotion_id == 3618925540: assigned_emotion = "Fear"
-                    if assigned_emotion_id == 3618925536: assigned_emotion = "Anger"
-                    if assigned_emotion_id == 3618925537: assigned_emotion = "Joy"
-                    if assigned_emotion_id == 3618925538: assigned_emotion = "Sadness"
-                    if assigned_emotion_id == 3618925539: assigned_emotion = "Surprise"
-                    if assigned_emotion_id == 3618925534: assigned_emotion = "Neutral"
-                    if assigned_emotion_id == 3618925535: assigned_emotion = "Disgust"
+                    if assigned_emotion_id == 3618925540:
+                        assigned_emotion = "Fear"
+                    if assigned_emotion_id == 3618925536:
+                        assigned_emotion = "Anger"
+                    if assigned_emotion_id == 3618925537:
+                        assigned_emotion = "Joy"
+                    if assigned_emotion_id == 3618925538:
+                        assigned_emotion = "Sadness"
+                    if assigned_emotion_id == 3618925539:
+                        assigned_emotion = "Surprise"
+                    if assigned_emotion_id == 3618925534:
+                        assigned_emotion = "Neutral"
+                    if assigned_emotion_id == 3618925535:
+                        assigned_emotion = "Disgust"
                 category_scores = posts_data[i]['categoryScores']
-                basic_positive_dict = next((category for category in category_scores if int(category['categoryId']) == 3618925528), None)
-                basic_positive = basic_positive_dict['score'] if basic_positive_dict else None
-                basic_neutral_dict = next((category for category in category_scores if int(category['categoryId']) == 3618925529), None)
-                basic_neutral = basic_neutral_dict['score'] if basic_neutral_dict else None
-                basic_negative_dict = next((category for category in category_scores if int(category['categoryId']) == 3618925530), None)
-                basic_negative = basic_negative_dict['score'] if basic_negative_dict else None
+                basic_positive_dict = next(
+                    (
+                        category for category
+                        in category_scores
+                        if int(category['categoryId']) == 3618925528
+                    ),
+                    None
+                )
+                basic_positive = (
+                    basic_positive_dict['score']
+                    if basic_positive_dict
+                    else None
+                )
+                basic_neutral_dict = next(
+                    (
+                        category for category
+                        in category_scores
+                        if int(category['categoryId']) == 3618925529
+                    ),
+                    None
+                )
+                basic_neutral = (
+                    basic_neutral_dict['score']
+                    if basic_neutral_dict
+                    else None
+                )
+                basic_negative_dict = next(
+                    (
+                        category for category
+                        in category_scores
+                        if int(category['categoryId']) == 3618925530
+                    ),
+                    None
+                )
+                basic_negative = (
+                    basic_negative_dict['score']
+                    if basic_negative_dict
+                    else None
+                )
                 emotion_scores = posts_data[i]['emotionScores']
-                fear_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925540), None)
+                fear_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925540
+                    ),
+                    None
+                )
                 fear = fear_dict['score'] if fear_dict else None
-                anger_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925536), None)
+                anger_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925536
+                    ),
+                    None
+                )
                 anger = anger_dict['score'] if anger_dict else None
-                joy_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925537), None)
+                joy_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925537
+                    ),
+                    None
+                )
                 joy = joy_dict['score'] if joy_dict else None
-                sadness_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925538), None)
+                sadness_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925538
+                    ),
+                    None
+                )
                 sadness = sadness_dict['score'] if sadness_dict else None
-                surprise_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925539), None)
+                surprise_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925539
+                    ),
+                    None
+                )
                 surprise = surprise_dict['score'] if surprise_dict else None
-                neutral_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925534), None)
+                neutral_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925534
+                    ),
+                    None
+                )
                 neutral = neutral_dict['score'] if neutral_dict else None
-                disgust_dict = next((emotion for emotion in emotion_scores if int(emotion['emotionId']) == 3618925535), None)
+                disgust_dict = next(
+                    (
+                        emotion for emotion
+                        in emotion_scores
+                        if int(emotion['emotionId']) == 3618925535
+                    ),
+                    None
+                )
                 disgust = disgust_dict['score'] if disgust_dict else None
                 writer.writerow([
                     url,
@@ -468,10 +699,19 @@ class Monitor(object):
                     disgust
                 ])
 
-
     def get_influencers_single_date(self, date):
-        """Return influencer data of monitor with a certain id for the specified date as a list of dicts."""
-        url = "https://forsight.crimsonhexagon.com/ch/opinion/export?id="+str(self.id)+"&start="+date+"&end="+date+"&export=INFLUENCER_SUMMARY&format=EXCEL&authorsLoaded=100"
+        """
+        Return influencer data of monitor with a certain id for the specified
+        date as a list of dicts.
+        """
+
+        url = (
+            "https://forsight.crimsonhexagon.com/ch/opinion/export?"
+            + "id=" + str(self.id)
+            + "&start=" + date
+            + "&end=" + date
+            + "&export=INFLUENCER_SUMMARY&format=EXCEL&authorsLoaded=100"
+        )
         resp = session.get(url, allow_redirects=True)
 
         day = datetime.datetime.strptime(date, '%Y-%m-%d')
@@ -487,17 +727,15 @@ class Monitor(object):
         }
 
         xls_file = resp.content
-        wb = xlrd.open_workbook(file_contents=resp.content)
+        wb = xlrd.open_workbook(file_contents=xls_file)
         sh = wb.sheet_by_index(0)
 
-        # Print all values, iterating through rows and columns
-        num_cols = sh.ncols   # Number of columns
-        for row_idx in range(2, sh.nrows):    # Iterate through rows
-            author = sh.cell_value(row_idx, 0)  # Get cell value by row, col
-            tweets = int(sh.cell_value(row_idx, 1))  # Get cell value by row, col
-            following = int(sh.cell_value(row_idx, 2))  # Get cell value by row, col
-            follower = int(sh.cell_value(row_idx, 3))  # Get cell value by row, col
-            influencer_score = sh.cell_value(row_idx, 4)  # Get cell value by row, col
+        for row_idx in range(2, sh.nrows):
+            author = sh.cell_value(row_idx, 0)
+            tweets = int(sh.cell_value(row_idx, 1))
+            following = int(sh.cell_value(row_idx, 2))
+            follower = int(sh.cell_value(row_idx, 3))
+            influencer_score = sh.cell_value(row_idx, 4)
 
             influencer_dict = {
                 'author': author.encode('UTF-8'),
@@ -510,27 +748,42 @@ class Monitor(object):
 
         return influencer
 
-
     def get_influencer_data(self, start, end):
-        """Return influencer data of monitor with a certain id for the specified date range
-        as a list of list dicts."""
+        """
+        Return influencer data of monitor with a certain id for the specified
+        date range as a list of list dicts.
+        """
+
         start_date = datetime.datetime.strptime(start, '%Y-%m-%d')
         end_date = datetime.datetime.strptime(end, '%Y-%m-%d')
 
-        daterange = dates.daterange(start_date=start_date, end_date=end_date)
+        start_end_daterange = daterange(
+            start_date=start_date,
+            end_date=end_date
+        )
 
         influencer_data = []
 
-        for single_date in daterange:
+        for single_date in start_end_daterange:
             single_date_str = single_date.strftime('%Y-%m-%d')
-            influencer_dict = self.get_influencers_single_date(date=single_date_str)
+            influencer_dict = self.get_influencers_single_date(
+                date=single_date_str
+            )
             influencer_data.append(influencer_dict)
 
         return influencer_data
 
+    def influencer_to_csv(
+        self,
+        start,
+        end,
+        output_filename="influencer_data.csv"
+    ):
+        """
+        Saves influencer data of monitor with id=id for specified time range as
+        a csv-file.
+        """
 
-    def influencer_to_csv(self, start, end, output_filename="influencer_data.csv"):
-        """Saves influencer data of monitor with id=id for specified time range as a csv-file."""
         influencer_data = self.get_influencer_data(start=start, end=end)
         with open(output_filename, 'w+') as output_file:
             writer = csv.writer(output_file)
@@ -561,18 +814,28 @@ class Monitor(object):
                     ])
 
 
-# Helper Functions
+'''
+Helper Functions
+'''
+
+
 def daterange(start_date, end_date):
     """
     Returns list of dates from start to end date in format YYYY-MM-DD.
     """
-    for n in range(int ((end_date - start_date).days)):
+    for n in range(int((end_date - start_date).days)):
         yield start_date + datetime.timedelta(n)
+
 
 def build_dict(seq, key):
     """
-    Returns from dictionary in form {'id':'1234', 'name':'Tom'} a dictionary in form {'index':1, 'id':'1234', 'name':'Tom'}
-    with index signaling position of dict and seq where key = value
+    Returns from dictionary in form {'id':'1234', 'name':'Tom'} a dictionary in
+    form {'index':1, 'id':'1234', 'name':'Tom'} with index signaling position
+    of dict and seq where key = value
     Source: https://stackoverflow.com/questions/4391697/find-the-index-of-a-dict-within-a-list-by-matching-the-dicts-value
     """
-    return dict((d[key], dict(d, index=index)) for (index, d) in enumerate(seq))
+    return dict(
+        (d[key], dict(d, index=index))
+        for (index, d)
+        in enumerate(seq)
+    )
