@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import time
 import datetime
 import csv
+import xlrd
+
 
 class Monitor(object):
     def __init__(self, id=None, title=None, sources=None, languages=[], keywords=None, start=None, end=None):
@@ -487,11 +489,10 @@ class Monitor(object):
         }
 
         xls_file = resp.content
-        wb = xlrd.open_workbook(file_contents=resp.content)
+        wb = xlrd.open_workbook(file_contents=xls_file)
         sh = wb.sheet_by_index(0)
 
         # Print all values, iterating through rows and columns
-        num_cols = sh.ncols   # Number of columns
         for row_idx in range(2, sh.nrows):    # Iterate through rows
             author = sh.cell_value(row_idx, 0)  # Get cell value by row, col
             tweets = int(sh.cell_value(row_idx, 1))  # Get cell value by row, col
@@ -512,16 +513,16 @@ class Monitor(object):
 
 
     def get_influencer_data(self, start, end):
-        """Return influencer data of monitor with a certain id for the specified date range
-        as a list of list dicts."""
+        """Return influencer data of monitor with a certain id for the
+        specified date range as a list of list dicts."""
         start_date = datetime.datetime.strptime(start, '%Y-%m-%d')
         end_date = datetime.datetime.strptime(end, '%Y-%m-%d')
 
-        daterange = dates.daterange(start_date=start_date, end_date=end_date)
+        start_end_daterange = daterange(start_date=start_date, end_date=end_date)
 
         influencer_data = []
 
-        for single_date in daterange:
+        for single_date in start_end_daterange:
             single_date_str = single_date.strftime('%Y-%m-%d')
             influencer_dict = self.get_influencers_single_date(date=single_date_str)
             influencer_data.append(influencer_dict)
@@ -561,18 +562,24 @@ class Monitor(object):
                     ])
 
 
-# Helper Functions
+'''
+Helper Functions
+'''
+
+
 def daterange(start_date, end_date):
     """
     Returns list of dates from start to end date in format YYYY-MM-DD.
     """
-    for n in range(int ((end_date - start_date).days)):
+    for n in range(int((end_date - start_date).days)):
         yield start_date + datetime.timedelta(n)
+
 
 def build_dict(seq, key):
     """
-    Returns from dictionary in form {'id':'1234', 'name':'Tom'} a dictionary in form {'index':1, 'id':'1234', 'name':'Tom'}
-    with index signaling position of dict and seq where key = value
+    Returns from dictionary in form {'id':'1234', 'name':'Tom'} a dictionary in
+    form {'index':1, 'id':'1234', 'name':'Tom'} with index signaling position
+    of dict and seq where key = value
     Source: https://stackoverflow.com/questions/4391697/find-the-index-of-a-dict-within-a-list-by-matching-the-dicts-value
     """
     return dict((d[key], dict(d, index=index)) for (index, d) in enumerate(seq))
